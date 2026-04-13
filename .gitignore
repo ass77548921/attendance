@@ -1,0 +1,20 @@
+# ── Build outputs ────────────────────────────────
+build/
+.gradle/
+*.jar
+*.war
+
+# ── IDE ──────────────────────────────────────────
+.idea/
+*.iml
+.vscode/
+
+# ── Environment & secrets ────────────────────────
+.env
+
+# ── External config (contains real credentials) ──
+config/application-local.yml
+config/application-local.properties
+
+# ── Upload directory (local dev) ─────────────────
+uploads/

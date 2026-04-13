@@ -1,0 +1,22 @@
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/attendance_test?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC&characterEncoding=UTF-8
+    username: test
+    password: test
+  jpa:
+    show-sql: false
+  flyway:
+    enabled: true
+  mail:
+    host: localhost
+    port: 1025
+
+app:
+  jwt:
+    secret: "Y9sBMrKQIy6qN+7UD6VZ3Vu13V3dYIP63rji3c/uBOg="
+    access-token-expiration-ms: 900000
+    refresh-token-expiration-ms: 604800000
+  upload:
+    dir: /tmp/attendance-test-uploads
+  notification:
+    from-email: test@attendance.local

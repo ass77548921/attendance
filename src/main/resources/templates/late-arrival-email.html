@@ -1,0 +1,30 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8"/>
+    <title>Late Arrival Notification</title>
+</head>
+<body style="font-family: Arial, sans-serif; background-color: #f4f4f4; padding: 20px;">
+<div style="max-width: 600px; margin: 0 auto; background: #fff; border-radius: 8px; padding: 30px;">
+    <h2 style="color: #e74c3c;">Late Arrival Alert</h2>
+    <p>Dear HR Team,</p>
+    <p>The following employee has been marked as <strong>late</strong> for today:</p>
+    <table style="width:100%; border-collapse: collapse; margin: 20px 0;">
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;"><strong>Employee</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;" th:text="${employeeName}">John Doe</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;"><strong>Date</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;" th:text="${workDate}">2024-01-01</td>
+        </tr>
+        <tr>
+            <td style="padding: 8px; border: 1px solid #ddd; background: #f9f9f9;"><strong>Late By</strong></td>
+            <td style="padding: 8px; border: 1px solid #ddd;"><span th:text="${lateMinutes}">15</span> minutes</td>
+        </tr>
+    </table>
+    <p>Please take appropriate action if required.</p>
+    <p style="color: #999; font-size: 12px;">This is an automated notification from the Attendance Management System.</p>
+</div>
+</body>
+</html>
