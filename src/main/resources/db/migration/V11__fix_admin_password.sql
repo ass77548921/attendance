@@ -1,5 +1,3 @@
--- Fix admin password hash
--- username: admin  password: Admin@1234
-UPDATE users
-SET password_hash = '$2b$12$wx.YcYiU8/afSwHbl68iouQD4fq9orV.NUaTjrOANDoGac1In70bi'
-WHERE username = 'admin';
+-- No-op migration.
+-- Historical admin password seed fix was folded into V8 so a new service
+-- bootstrap inserts the correct default admin password hash immediately.
