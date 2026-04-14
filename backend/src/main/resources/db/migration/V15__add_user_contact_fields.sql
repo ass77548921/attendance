@@ -1,0 +1,5 @@
+ALTER TABLE users
+    MODIFY COLUMN role ENUM('EMPLOYEE', 'ADMIN', 'SUPER_ADMIN') NOT NULL COMMENT '使用者角色類型',
+    ADD COLUMN address VARCHAR(255) NULL,
+    ADD COLUMN personal_phone VARCHAR(50) NULL,
+    ADD COLUMN office_extension VARCHAR(50) NULL;

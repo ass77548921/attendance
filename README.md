@@ -2,13 +2,18 @@
 
 一套基於 Spring Boot 的後端出勤打卡管理系統，提供員工打卡、出勤補登、遲到通知等核心功能，並附完整的管理員後台 API。
 
+## 專案目錄重點
+
+- `backend/`：後端專案根目錄（Gradle、Java 原始碼、Dockerfile）
+- 根目錄：專案協作與整合層（OpenSpec、Compose、環境檔、文件）
+
 ## 主要功能
 
 - **使用者認證**：JWT 登入（Access Token + Refresh Token）、角色權限控管（員工 / 管理員）
 - **打卡出勤**：上下班打卡、出勤記錄查詢
 - **出勤補登**：員工提交補登申請（含附件）、管理員審核
 - **遲到通知**：自動偵測遲到事件並發送 Email 通知
-- **管理員後台**：使用者管理、出勤設定、通知收件人管理
+- **管理員後台**：使用者管理、出勤設定、通知收件人管理、人工修正審計、郵件設定管理
 
 ---
 
@@ -64,6 +69,7 @@ docker run -d \
 **3. 啟動應用程式**
 
 ```bash
+cd backend
 ./gradlew bootRun
 ```
 
@@ -86,6 +92,7 @@ docker run -d \
 | `SMTP_USERNAME` | SMTP 帳號 | `your-email@gmail.com` |
 | `SMTP_PASSWORD` | SMTP 密碼（Gmail 請用 App Password） | _(必填)_ |
 | `NOTIFICATION_FROM_EMAIL` | 通知寄件人地址 | `noreply@attendance.local` |
+| `APP_SECURITY_SETTINGS_ENCRYPTION_KEY` | 後台郵件設定密碼加密金鑰 | `attendance-settings-default-key` |
 | `SERVER_PORT` | 應用程式監聽埠 | `8080` |
 | `UPLOAD_DIR` | 附件上傳目錄（容器內路徑） | `/app/uploads` |
 
@@ -104,7 +111,7 @@ docker run -d \
 
 **步驟：**
 
-1. 啟動應用（`./gradlew bootRun`）
+1. 先進入 `backend/` 後啟動應用（`./gradlew bootRun`）
 2. 瀏覽器開啟 `http://localhost:8080/swagger-ui.html`
 3. 使用預設管理員帳號登入，取得 JWT Token
 4. 點擊 Swagger UI 右上角「Authorize」，填入 `Bearer <token>` 後即可測試所有 API
@@ -113,15 +120,31 @@ docker run -d \
 
 ---
 
+## 管理後台 API 擴充重點
+
+- **出勤查詢回傳修正摘要**：`GET /api/admin/attendance`
+- **手動修正出勤**（需理由）：`PATCH /api/admin/attendance/{id}/adjust`
+- **查詢修正歷史**：`GET /api/admin/attendance/{id}/adjustments`
+- **規則設定驗證**：更新出勤時間設定時，強制 `workStartTime < workEndTime`
+- **郵件設定管理**：
+  - `GET /api/admin/mail-settings`
+  - `PUT /api/admin/mail-settings`（回應不暴露密碼明文）
+  - `POST /api/admin/mail-settings/test`（失敗時回傳可診斷訊息）
+
+> 所有 `/api/admin/**` 端點皆僅限 `ADMIN` 角色，且帳號被設為 `INACTIVE` 後，既有 JWT 也無法再通過授權。
+
+---
+
 ## 測試
 
 測試使用 Testcontainers，**執行前請確認 Docker 已在背景運作**。
 
 ```bash
+cd backend
 ./gradlew test
 ```
 
-測試報告輸出於：`build/reports/tests/test/index.html`
+測試報告輸出於：`backend/build/reports/tests/test/index.html`
 
 ---
 
@@ -147,3 +170,11 @@ docker compose up -d
 ```bash
 docker compose down
 ```
+
+---
+
+## 結構遷移回滾說明
+
+- 若 backend 目錄重整後需回滾，請直接回退本次「目錄遷移」相關 commit，即可恢復原本 root 結構。
+- 本次變更僅涉及檔案路徑與執行入口調整，未新增或修改資料庫 migration 腳本。
+- 因此回滾不需要額外執行持久化資料遷移；資料庫內容可沿用現有狀態。
