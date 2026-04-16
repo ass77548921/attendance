@@ -53,6 +53,14 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Access denied"));
     }
 
+    @ExceptionHandler(EmployeeAdminAccessDeniedException.class)
+    public ResponseEntity<Map<String, String>> handleEmployeeAdminAccessDenied(EmployeeAdminAccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                "code", EmployeeAdminAccessDeniedException.ERROR_CODE,
+                "message", ex.getMessage()
+        ));
+    }
+
     @ExceptionHandler(PolicyViolationException.class)
     public ResponseEntity<Map<String, String>> handlePolicyViolation(PolicyViolationException ex) {
         return ResponseEntity.badRequest().body(Map.of("message", ex.getMessage()));

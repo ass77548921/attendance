@@ -1,0 +1,6 @@
+#include "Generated.xcconfig"
+
+// Dev Flavor - Debug
+FLUTTER_TARGET=lib/main_dev.dart
+BUNDLE_ID_SUFFIX=.dev
+APP_DISPLAY_NAME=打卡(Dev)

@@ -1,0 +1,21 @@
+FROM ghcr.io/cirruslabs/flutter:stable AS build
+
+WORKDIR /app
+
+COPY pubspec.yaml pubspec.lock ./
+RUN flutter pub get
+
+COPY . .
+
+ARG TARGET_FILE=lib/main_stage.dart
+ARG DEFINE_FILE=flavors/stage.json
+RUN flutter build web --release --target ${TARGET_FILE} --dart-define-from-file=${DEFINE_FILE}
+
+FROM nginx:1.27-alpine
+
+COPY docker/nginx/flutter-web.conf /etc/nginx/conf.d/default.conf
+COPY --from=build /app/build/web /usr/share/nginx/html
+
+EXPOSE 80
+
+CMD ["nginx", "-g", "daemon off;"]

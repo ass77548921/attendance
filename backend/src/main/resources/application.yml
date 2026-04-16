@@ -55,6 +55,14 @@ app:
     from-email: ${NOTIFICATION_FROM_EMAIL:noreply@attendance.local}
     from-name: ${NOTIFICATION_FROM_NAME:出勤管理系統}
 
+  cors:
+    allowed-origins: ${APP_CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:8081,http://localhost:8082,http://localhost:8083}
+    allowed-methods: ${APP_CORS_ALLOWED_METHODS:GET,POST,PUT,PATCH,DELETE,OPTIONS}
+    allowed-headers: ${APP_CORS_ALLOWED_HEADERS:Authorization,Content-Type,X-Requested-With}
+    exposed-headers: ${APP_CORS_EXPOSED_HEADERS:Authorization}
+    allow-credentials: ${APP_CORS_ALLOW_CREDENTIALS:true}
+    max-age-seconds: ${APP_CORS_MAX_AGE_SECONDS:3600}
+
 springdoc:
   swagger-ui:
     path: /swagger-ui.html

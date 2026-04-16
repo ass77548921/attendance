@@ -16,4 +16,13 @@ public class UpdateProfileRequest {
 
     @Size(min = 1, max = 100, message = "密碼不得為空字串")
     private String password; // null = keep existing; empty string is rejected by @Size(min=1)
+
+    @Size(max = 255)
+    private String address;
+
+    @Size(max = 50)
+    private String personalPhone;
+
+    @Size(max = 50)
+    private String officeExtension;
 }

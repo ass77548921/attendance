@@ -5,7 +5,53 @@
 ## 專案目錄重點
 
 - `backend/`：後端專案根目錄（Gradle、Java 原始碼、Dockerfile）
+- `frontend/`：React 管理後台
+- `flutter/`：Flutter 員工前台（Web / Android / iOS）
 - 根目錄：專案協作與整合層（OpenSpec、Compose、環境檔、文件）
+
+## Flutter 前台
+
+Flutter 前台位於 `flutter/`，提供員工使用的登入、打卡、補打卡、個人資料等功能。
+
+### Flutter 技術選型
+
+- API：`dio`
+- 狀態管理：`flutter_riverpod`
+- 路由：`go_router`
+- Flavor：`flutter_flavorizr` + `dart-define-from-file`
+
+### Flutter 前置需求
+
+- Flutter 3.38+
+- Dart 3.10+
+- Android Studio / Xcode（iOS 目前只完成 flavor 設定，不納入本次測試驗收）
+
+### Flutter 啟動
+
+```bash
+cd flutter
+make pub-get
+make flavorize
+make run-web-stage
+```
+
+也可以直接執行：
+
+```bash
+cd flutter
+flutter run -d chrome --target lib/main_stage.dart --dart-define-from-file=flavors/stage.json
+```
+
+### Flutter 常用指令
+
+```bash
+cd flutter
+make run-stage
+make run-web-stage
+make build-android-stage
+make build-web-stage
+make analyze
+```
 
 ## 主要功能
 
@@ -95,8 +141,23 @@ cd backend
 | `APP_SECURITY_SETTINGS_ENCRYPTION_KEY` | 後台郵件設定密碼加密金鑰 | `attendance-settings-default-key` |
 | `SERVER_PORT` | 應用程式監聽埠 | `8080` |
 | `UPLOAD_DIR` | 附件上傳目錄（容器內路徑） | `/app/uploads` |
+| `APP_CORS_ALLOWED_ORIGINS` | 允許跨網域來源（逗號分隔） | `http://localhost:5173,http://localhost:8081,...` |
+| `APP_CORS_ALLOWED_METHODS` | 允許的 HTTP 方法（逗號分隔） | `GET,POST,PUT,PATCH,DELETE,OPTIONS` |
+| `APP_CORS_ALLOWED_HEADERS` | 允許的請求標頭（逗號分隔） | `Authorization,Content-Type,X-Requested-With` |
+| `APP_CORS_EXPOSED_HEADERS` | 回應可暴露標頭（逗號分隔） | `Authorization` |
+| `APP_CORS_ALLOW_CREDENTIALS` | 是否允許 credentials | `true` |
+| `APP_CORS_MAX_AGE_SECONDS` | Preflight 快取秒數 | `3600` |
 
 > Gmail App Password 申請：https://myaccount.google.com/apppasswords
+
+## CORS 配置與驗證
+
+- 統一矩陣與來源盤點：`docs/cors/config-matrix.md`
+- Smoke checklist：`docs/cors/smoke-checklist.md`
+- Rollout/Rollback 與排錯：`docs/cors/rollout-rollback.md`
+- 觀測指標與後續改善：`docs/cors/observability.md`
+
+注意：`APP_CORS_ALLOW_CREDENTIALS=true` 時，`APP_CORS_ALLOWED_ORIGINS` 不可包含 `*`，應用程式啟動會 fail fast。
 
 ---
 
@@ -149,6 +210,42 @@ cd backend
 ---
 
 ## Docker 部署
+
+## 一鍵整合啟動（後端 -> 後台 -> 前台）
+
+根目錄提供整合用 `docker-compose.yml`，可依序啟動：
+- backend（健康檢查通過）
+- admin-web（React 後台）
+- employee-web（Flutter Web 前台）
+
+### 1. 建立根目錄環境檔
+
+```bash
+cp .env.example .env
+```
+
+### 2. 啟動全部服務
+
+```bash
+docker compose up --build -d
+```
+
+### 3. 服務位址
+
+- Backend API: `http://localhost:8080`
+- Admin 後台: `http://localhost:5173`
+- Flutter 前台: `http://localhost:8081`
+
+### 4. 停止
+
+```bash
+docker compose down
+```
+
+> Flutter flavor 可透過 `.env` 的 `FLUTTER_TARGET_FILE` / `FLUTTER_DEFINE_FILE` 切換。
+> Flutter Web API 同源代理可透過 `FLUTTER_WEB_API_BASE_URL` 控制（預設 `/api`）。
+
+---
 
 **1. 建立 `.env` 設定檔**
 

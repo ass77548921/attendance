@@ -9,4 +9,9 @@ public class LoginRequest {
     private String username;
     @NotBlank
     private String password;
+    private String clientType;
+
+    public boolean isAdminConsoleLogin() {
+        return "ADMIN_CONSOLE".equalsIgnoreCase(clientType);
+    }
 }

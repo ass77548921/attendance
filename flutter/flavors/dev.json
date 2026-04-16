@@ -1,0 +1,6 @@
+{
+  "API_BASE_URL": "https://dev.for-sky.com",
+  "APP_NAME": "打卡(Dev)",
+  "APP_SUFFIX": ".dev",
+  "STANDARD_WORK_HOURS": 8
+}

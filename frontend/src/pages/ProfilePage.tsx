@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react';
 import { apiClient } from '../lib/apiClient';
 import { useAuth } from '../context/AuthContext';
-import type { UserResponse } from '../types/api';
+import type { UpdateMyProfileRequest, UserResponse } from '../types/api';
 
 export function ProfilePage() {
   const { setUsername } = useAuth();
-  const [form, setForm] = useState({ fullName: '', email: '', password: '' });
+  const [form, setForm] = useState({ fullName: '', email: '', address: '', personalPhone: '', officeExtension: '', password: '' });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState('');
@@ -13,7 +13,7 @@ export function ProfilePage() {
 
   useEffect(() => {
     apiClient.get<UserResponse>('/api/users/me')
-      .then(data => setForm(f => ({ ...f, fullName: data.fullName, email: data.email })))
+      .then(data => setForm(f => ({ ...f, fullName: data.fullName, email: data.email, address: data.address ?? '', personalPhone: data.personalPhone ?? '', officeExtension: data.officeExtension ?? '' })))
       .catch((err: unknown) => setErrorMsg(err instanceof Error ? err.message : '無法載入個人資料'))
       .finally(() => setLoading(false));
   }, []);
@@ -27,9 +27,13 @@ export function ProfilePage() {
     setSuccessMsg('');
     setErrorMsg('');
 
-    const body: Record<string, string> = {
+    const emptyToNull = (v: string) => v.trim() === '' ? null : v.trim();
+    const body: UpdateMyProfileRequest = {
       fullName: form.fullName,
       email: form.email,
+      address: emptyToNull(form.address),
+      personalPhone: emptyToNull(form.personalPhone),
+      officeExtension: emptyToNull(form.officeExtension),
     };
     if (form.password !== '') {
       body.password = form.password;
@@ -38,7 +42,15 @@ export function ProfilePage() {
     try {
       const updated = await apiClient.put<UserResponse>('/api/users/me', body);
       setSuccessMsg('個人資料已更新');
-      setForm(f => ({ ...f, password: '' }));
+      setForm(f => ({
+        ...f,
+        fullName: updated.fullName,
+        email: updated.email,
+        address: updated.address ?? '',
+        personalPhone: updated.personalPhone ?? '',
+        officeExtension: updated.officeExtension ?? '',
+        password: '',
+      }));
       setUsername(updated.username);
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : '更新失敗';
@@ -89,6 +101,42 @@ export function ProfilePage() {
             value={form.email}
             onChange={set('email')}
             required
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            地址
+            <span className="text-gray-400 font-normal ml-1">（選填）</span>
+          </label>
+          <input
+            type="text"
+            value={form.address}
+            onChange={set('address')}
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            個人聯絡電話
+            <span className="text-gray-400 font-normal ml-1">（選填）</span>
+          </label>
+          <input
+            type="text"
+            value={form.personalPhone}
+            onChange={set('personalPhone')}
+            className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">
+            公司分機電話
+            <span className="text-gray-400 font-normal ml-1">（選填）</span>
+          </label>
+          <input
+            type="text"
+            value={form.officeExtension}
+            onChange={set('officeExtension')}
             className="w-full border border-gray-300 rounded px-3 py-2 text-sm"
           />
         </div>

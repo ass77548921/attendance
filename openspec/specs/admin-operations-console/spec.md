@@ -1,18 +1,22 @@
 ## ADDED Requirements
 
 ### Requirement: 管理員登入
-系統 SHALL 提供管理員登入頁面，輸入帳號密碼後向後端 `POST /api/auth/login` 取得 JWT，並將 token 儲存於 localStorage，登入成功後導向後台首頁。
+系統 SHALL 提供管理員登入頁面，輸入帳號密碼後向後端 `POST /api/auth/login` 進行驗證。僅具後台管理權限的帳號可完成登入並取得 JWT；若為員工帳號（EMPLOYEE），系統 MUST 拒絕其後台登入並在登入頁顯示「此帳號為員工帳號，無法管理後台」。
 
-#### Scenario: 正常登入
+#### Scenario: 正常登入（管理帳號）
 - **WHEN** 管理員輸入正確的 username 與 password 並提交登入
 - **THEN** 系統取得 JWT token，儲存後導向 `/admin/attendance` 頁面
+
+#### Scenario: 員工帳號嘗試登入後台
+- **WHEN** 員工帳號（EMPLOYEE）輸入正確的 username 與 password 並提交登入
+- **THEN** 系統拒絕登入且不導向管理頁，登入頁顯示「此帳號為員工帳號，無法管理後台」
 
 #### Scenario: 帳號或密碼錯誤
 - **WHEN** 管理員輸入錯誤的帳號或密碼
 - **THEN** 系統在登入頁顯示「帳號或密碼錯誤」提示，不導向
 
 #### Scenario: 已登入使用者訪問登入頁
-- **WHEN** 已有有效 JWT 的使用者訪問登入頁
+- **WHEN** 已有有效 JWT 的管理帳號訪問登入頁
 - **THEN** 系統自動導向 `/admin/attendance`
 
 #### Scenario: JWT 過期或 401 回應
@@ -73,27 +77,55 @@
 - **THEN** 表格依選擇 status 更新
 
 ### Requirement: 員工帳號管理頁
-系統 SHALL 提供員工帳號管理頁 (`/admin/users`)，管理員可查詢員工列表、新增員工帳號、啟用/停用帳號。
+系統 SHALL 提供員工帳號管理頁 (`/admin/users`)，SUPER_ADMIN 可查詢所有帳號（EMPLOYEE + ADMIN）、新增 EMPLOYEE 或 ADMIN 帳號、啟用/停用帳號；ADMIN 僅可查詢 EMPLOYEE 帳號列表、新增 EMPLOYEE 帳號、啟用/停用 EMPLOYEE 帳號。
 
-#### Scenario: 查詢員工列表
-- **WHEN** 管理員訪問帳號管理頁
-- **THEN** 表格顯示 userId、username、fullName、email、role、status（ACTIVE / INACTIVE）
+#### Scenario: SUPER_ADMIN 查詢帳號列表
+- **WHEN** SUPER_ADMIN 訪問帳號管理頁
+- **THEN** 表格顯示所有 EMPLOYEE 與 ADMIN 帳號（不包含 SUPER_ADMIN），欄位包含 userId、username、fullName、email、role、status（ACTIVE / INACTIVE）
 
-#### Scenario: 搜尋員工
-- **WHEN** 管理員在搜尋欄輸入姓名或 email
-- **THEN** 表格即時（submit 或 debounce）顯示符合條件的員工
+#### Scenario: ADMIN 查詢帳號列表
+- **WHEN** ADMIN 訪問帳號管理頁
+- **THEN** 表格僅顯示 EMPLOYEE 帳號，不顯示 ADMIN 帳號，欄位包含 userId、username、fullName、email、role、status（ACTIVE / INACTIVE）
 
-#### Scenario: 建立新員工帳號
-- **WHEN** 管理員點擊「新增員工」，填寫 username、fullName、email、密碼後送出
-- **THEN** 系統呼叫 `POST /api/admin/users`，成功後帳號出現在列表中，顯示成功提示
+#### Scenario: 依 ID 搜尋
+- **WHEN** 使用者在 ID 搜尋欄輸入 userId 數字後提交搜尋
+- **THEN** 表格顯示符合該 userId 的帳號（精確比對）；若無結果則顯示空列表
+
+#### Scenario: 依姓名或 Email 搜尋
+- **WHEN** 使用者在姓名/Email 搜尋欄輸入關鍵字後提交搜尋
+- **THEN** 表格顯示姓名或 email 包含該關鍵字的帳號（模糊比對）
+
+#### Scenario: SUPER_ADMIN 依角色篩選
+- **WHEN** SUPER_ADMIN 在角色篩選器選擇「EMPLOYEE」、「ADMIN」或「全部」
+- **THEN** 表格依所選角色更新，角色篩選器可選項目為：全部、EMPLOYEE、ADMIN
+
+#### Scenario: ADMIN 角色篩選不可用
+- **WHEN** ADMIN 訪問帳號管理頁
+- **THEN** 頁面不顯示角色篩選器（或固定顯示 EMPLOYEE，不可修改）；後端固定只回傳 EMPLOYEE 帳號
+
+#### Scenario: 依狀態篩選
+- **WHEN** 使用者在狀態篩選器選擇「ACTIVE」、「INACTIVE」或「全部」
+- **THEN** 表格依所選狀態更新，只顯示符合狀態的帳號
+
+#### Scenario: SUPER_ADMIN 建立新員工帳號
+- **WHEN** SUPER_ADMIN 點擊「新增員工」，填寫 username、fullName、email、密碼，角色選擇「EMPLOYEE」後送出
+- **THEN** 系統呼叫 `POST /api/admin/users`（role=EMPLOYEE），成功後帳號出現在列表中，顯示成功提示
+
+#### Scenario: SUPER_ADMIN 建立新管理員帳號
+- **WHEN** SUPER_ADMIN 點擊「新增管理員」，填寫 username、fullName、email、密碼，角色為「ADMIN」後送出
+- **THEN** 系統呼叫 `POST /api/admin/users`（role=ADMIN），成功後帳號出現在列表中，顯示成功提示
+
+#### Scenario: ADMIN 只能新增員工帳號
+- **WHEN** ADMIN 訪問帳號管理頁
+- **THEN** 頁面僅顯示「新增員工」按鈕，不顯示「新增管理員」按鈕
 
 #### Scenario: 停用帳號
-- **WHEN** 管理員點擊員工行的「停用」按鈕
-- **THEN** 系統呼叫 `PATCH /api/admin/users/{id}/status`（status=INACTIVE），該員工狀態欄更新，顯示成功提示
+- **WHEN** 管理員點擊帳號列的「停用」按鈕
+- **THEN** 系統呼叫 `PATCH /api/admin/users/{id}/status`（status=INACTIVE），該帳號狀態欄更新，顯示成功提示
 
 #### Scenario: 重新啟用帳號
-- **WHEN** 管理員點擊已停用員工的「啟用」按鈕
-- **THEN** 系統呼叫狀態更新 API（status=ACTIVE），員工狀態恢復為 ACTIVE
+- **WHEN** 管理員點擊已停用帳號的「啟用」按鈕
+- **THEN** 系統呼叫狀態更新 API（status=ACTIVE），帳號狀態恢復為 ACTIVE
 
 ### Requirement: 出勤規則設定頁
 系統 SHALL 提供出勤規則設定頁 (`/admin/config`)，管理員可查詢並修改出勤規則（上下班時間、遲到寬限）。

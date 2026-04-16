@@ -1,0 +1,7 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.release.xcconfig"
+#include "Generated.xcconfig"
+
+ASSET_PREFIX=staging
+BUNDLE_NAME=打卡(Staging)
+BUNDLE_DISPLAY_NAME=打卡(Staging)
+APP_DISPLAY_NAME=打卡(Staging)

@@ -1,0 +1,16 @@
+name: attendance-flutter
+
+services:
+  flutter-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+      args:
+        TARGET_FILE: ${FLUTTER_TARGET_FILE:-lib/main_stage.dart}
+        DEFINE_FILE: ${FLUTTER_DEFINE_FILE:-flavors/stage.json}
+    container_name: attendance-flutter-web
+    restart: unless-stopped
+    ports:
+      - "${FLUTTER_WEB_PORT:-8081}:80"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"

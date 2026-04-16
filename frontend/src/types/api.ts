@@ -108,6 +108,15 @@ export interface UpdateUserRequest {
   password?: string;
 }
 
+export interface UpdateMyProfileRequest {
+  fullName?: string;
+  email?: string;
+  address?: string | null;
+  personalPhone?: string | null;
+  officeExtension?: string | null;
+  password?: string;
+}
+
 export interface ResetPasswordRequest {
   newPassword: string;
   reason: string;

@@ -1,0 +1,3 @@
+FLUTTER_TARGET_FILE=lib/main_pro.dart
+FLUTTER_DEFINE_FILE=flavors/pro.json
+FLUTTER_WEB_PORT=8083

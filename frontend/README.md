@@ -1,5 +1,15 @@
 # React + TypeScript + Vite
 
+## API Base URL Modes
+
+Frontend uses `VITE_API_BASE_URL` as Vite proxy target for `/api`.
+
+- `npm run dev -- --mode dev` -> loads `.env.dev`
+- `npm run dev -- --mode stage` -> loads `.env.stage`
+- `npm run dev -- --mode pro` -> loads `.env.pro`
+
+The URLs are aligned with Flutter flavor `API_BASE_URL` and backend CORS docs in `../docs/cors/config-matrix.md`.
+
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 
 Currently, two official plugins are available:

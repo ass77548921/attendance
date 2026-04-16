@@ -1,0 +1,7 @@
+#include? "Pods/Target Support Files/Pods-Runner/Pods-Runner.debug.xcconfig"
+#include "Generated.xcconfig"
+
+ASSET_PREFIX=prod
+BUNDLE_NAME=打卡
+BUNDLE_DISPLAY_NAME=打卡
+APP_DISPLAY_NAME=打卡

@@ -1,5 +1,17 @@
 const TOKEN_KEY = 'attendance_token';
 
+export class ApiError extends Error {
+  status: number;
+  code?: string;
+
+  constructor(message: string, status: number, code?: string) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
 export function getToken(): string | null {
   return localStorage.getItem(TOKEN_KEY);
 }
@@ -36,17 +48,21 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
 
   if (!res.ok) {
     let message = `HTTP ${res.status}`;
+    let code: string | undefined;
     try {
       const body = await res.json();
       if (body.errors && typeof body.errors === 'object') {
         message = Object.values(body.errors).join('、');
       } else {
+        if (typeof body.code === 'string') {
+          code = body.code;
+        }
         message = body.message || body.detail || body.error || message;
       }
     } catch {
       // ignore parse errors
     }
-    throw new Error(message);
+    throw new ApiError(message, res.status, code);
   }
 
   if (res.status === 204) return undefined as T;

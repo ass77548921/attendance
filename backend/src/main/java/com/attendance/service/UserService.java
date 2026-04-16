@@ -157,6 +157,15 @@ public class UserService {
         if (request.getFullName() != null) {
             user.setFullName(request.getFullName());
         }
+        if (request.getAddress() != null) {
+            user.setAddress(request.getAddress().isBlank() ? null : request.getAddress());
+        }
+        if (request.getPersonalPhone() != null) {
+            user.setPersonalPhone(request.getPersonalPhone().isBlank() ? null : request.getPersonalPhone());
+        }
+        if (request.getOfficeExtension() != null) {
+            user.setOfficeExtension(request.getOfficeExtension().isBlank() ? null : request.getOfficeExtension());
+        }
         if (request.getPassword() != null) {
             user.setPassword(passwordEncoder.encode(request.getPassword()));
         }

@@ -45,6 +45,35 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void employeeLoginToAdminConsoleShouldReturn403WithStableErrorCode() throws Exception {
+        String adminToken = loginAndGetToken("admin", "Admin@1234");
+        String username = "employee_no_admin_" + System.currentTimeMillis();
+
+        mockMvc.perform(post("/api/admin/users")
+                        .header("Authorization", "Bearer " + adminToken)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", username,
+                                "password", "Test@1234",
+                                "fullName", "No Admin Employee",
+                                "email", username + "@example.com",
+                                "role", "EMPLOYEE"
+                        ))))
+                .andExpect(status().isCreated());
+
+        mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(Map.of(
+                                "username", username,
+                                "password", "Test@1234",
+                                "clientType", "ADMIN_CONSOLE"
+                        ))))
+                .andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code", is("EMPLOYEE_ACCOUNT_NO_ADMIN_ACCESS")))
+                .andExpect(jsonPath("$.message", is("此帳號為員工帳號，無法管理後台")));
+    }
+
+    @Test
     void accessAdminEndpointWithoutTokenShouldReturn401() throws Exception {
         mockMvc.perform(get("/api/admin/users"))
                 .andExpect(status().isUnauthorized());
@@ -109,6 +138,35 @@ class AuthIntegrationTest extends AbstractIntegrationTest {
                         .header("Authorization", "Bearer " + employeeToken))
                 .andExpect(status().isUnauthorized());
     }
+
+        @Test
+        void preflightToProtectedEndpointFromAllowedOriginShouldReturnCorsHeaders() throws Exception {
+                mockMvc.perform(options("/api/admin/users")
+                                                .header("Origin", "http://localhost:5173")
+                                                .header("Access-Control-Request-Method", "GET")
+                                                .header("Access-Control-Request-Headers", "Authorization,Content-Type"))
+                                .andExpect(status().isOk())
+                                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"))
+                                .andExpect(header().string("Access-Control-Allow-Credentials", "true"));
+        }
+
+        @Test
+        void preflightFromDisallowedOriginShouldBeForbidden() throws Exception {
+                mockMvc.perform(options("/api/admin/users")
+                                                .header("Origin", "http://evil.example")
+                                                .header("Access-Control-Request-Method", "GET")
+                                                .header("Access-Control-Request-Headers", "Authorization,Content-Type"))
+                                .andExpect(status().isForbidden())
+                                .andExpect(header().doesNotExist("Access-Control-Allow-Origin"));
+        }
+
+        @Test
+        void actualRequestFromAllowedOriginShouldKeepCorsHeaders() throws Exception {
+                mockMvc.perform(get("/api/admin/users")
+                                                .header("Origin", "http://localhost:5173"))
+                                .andExpect(status().isUnauthorized())
+                                .andExpect(header().string("Access-Control-Allow-Origin", "http://localhost:5173"));
+        }
 
     String loginAndGetToken(String username, String password) throws Exception {
         String response = mockMvc.perform(post("/api/auth/login")

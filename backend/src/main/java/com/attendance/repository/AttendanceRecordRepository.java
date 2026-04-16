@@ -13,9 +13,10 @@ import java.util.Optional;
 
 public interface AttendanceRecordRepository extends JpaRepository<AttendanceRecord, Long> {
 
-    Optional<AttendanceRecord> findByUserIdAndWorkDate(Long userId, LocalDate workDate);
+    @Query("SELECT a FROM AttendanceRecord a JOIN FETCH a.user WHERE a.user.id = :userId AND a.workDate = :workDate")
+    Optional<AttendanceRecord> findByUserIdAndWorkDate(@Param("userId") Long userId, @Param("workDate") LocalDate workDate);
 
-    @Query("SELECT a FROM AttendanceRecord a WHERE a.user.id = :userId " +
+    @Query("SELECT a FROM AttendanceRecord a JOIN FETCH a.user WHERE a.user.id = :userId " +
            "AND a.workDate BETWEEN :startDate AND :endDate ORDER BY a.workDate DESC")
     List<AttendanceRecord> findByUserAndDateRange(@Param("userId") Long userId,
                                                   @Param("startDate") LocalDate startDate,

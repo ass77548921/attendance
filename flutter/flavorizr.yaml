@@ -1,0 +1,51 @@
+app:
+  android:
+    flavorDimensions: environment
+instructions:
+  - assets:download
+  - assets:extract
+  - android:flavorizrGradle
+  - android:buildGradle
+  - android:androidManifest
+  - flutter:flavors
+  - ios:xcconfig
+  - ios:buildTargets
+  - ios:schema
+  - ios:plist
+  - ide:config
+  - assets:clean
+flavors:
+  stage:
+    app:
+      name: "打卡(Stage)"
+    android:
+      applicationId: "com.timeclock.attendance.stage"
+      customConfig:
+        versionNameSuffix: '"-stage"'
+    ios:
+      bundleId: "com.timeclock.attendance.stage"
+      variables:
+        APP_DISPLAY_NAME:
+          value: "打卡(Stage)"
+  dev:
+    app:
+      name: "打卡(Dev)"
+    android:
+      applicationId: "com.timeclock.attendance.dev"
+      customConfig:
+        versionNameSuffix: '"-dev"'
+    ios:
+      bundleId: "com.timeclock.attendance.dev"
+      variables:
+        APP_DISPLAY_NAME:
+          value: "打卡(Dev)"
+  pro:
+    app:
+      name: "打卡"
+    android:
+      applicationId: "com.timeclock.attendance"
+    ios:
+      bundleId: "com.timeclock.attendance"
+      variables:
+        APP_DISPLAY_NAME:
+          value: "打卡"

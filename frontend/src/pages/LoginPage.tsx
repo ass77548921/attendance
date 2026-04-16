@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { ApiError } from '../lib/apiClient';
 
 export function LoginPage() {
   const { login, token } = useAuth();
@@ -26,13 +27,17 @@ export function LoginPage() {
         navigate('/admin/attendance', { replace: true });
       }
     } catch (err: unknown) {
-      const msg = err instanceof Error ? err.message : '';
-      if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
-        setError('帳號或密碼錯誤');
-      } else if (msg) {
-        setError(`登入失敗：${msg}`);
+      if (err instanceof ApiError && err.code === 'EMPLOYEE_ACCOUNT_NO_ADMIN_ACCESS') {
+        setError('此帳號為員工帳號，無法管理後台');
       } else {
-        setError('登入失敗，請稍後再試');
+        const msg = err instanceof Error ? err.message : '';
+        if (msg.includes('401') || msg.toLowerCase().includes('unauthorized')) {
+          setError('帳號或密碼錯誤');
+        } else if (msg) {
+          setError(`登入失敗：${msg}`);
+        } else {
+          setError('登入失敗，請稍後再試');
+        }
       }
     } finally {
       setLoading(false);
