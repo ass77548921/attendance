@@ -1,0 +1,137 @@
+name: Rebuild Staging (Manual)
+
+on:
+  workflow_dispatch:
+    inputs:
+      services:
+        description: '要重建的服務（可多選，逗號分隔）'
+        required: true
+        default: 'all'
+        type: choice
+        options:
+          - all
+          - backend
+          - flutter
+          - frontend
+          - backend,flutter
+          - backend,frontend
+          - flutter,frontend
+      branch:
+        description: '要部署的分支'
+        required: true
+        default: 'dev'
+        type: string
+
+jobs:
+  rebuild-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - name: Rebuild staging via SSH
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.STAGING_HOST }}
+          username: ${{ secrets.STAGING_USER }}
+          key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: >-
+            SERVICES,BRANCH,
+            BACKEND_DB_URL,BACKEND_DB_USERNAME,BACKEND_DB_PASSWORD,
+            BACKEND_JWT_SECRET,
+            BACKEND_SMTP_HOST,BACKEND_SMTP_PORT,BACKEND_SMTP_USERNAME,BACKEND_SMTP_PASSWORD,
+            BACKEND_NOTIFICATION_FROM_EMAIL,BACKEND_SERVER_PORT,BACKEND_CONFIG_DIR,
+            FLUTTER_TARGET_FILE,FLUTTER_DEFINE_FILE,FLUTTER_WEB_PORT,
+            VITE_API_BASE_URL
+          script: |
+            set -e
+            echo "=============================="
+            echo " Rebuild Staging"
+            echo " Branch : ${BRANCH}"
+            echo " Services: ${SERVICES}"
+            echo "=============================="
+
+            cd /srv/attendance
+            git fetch origin
+            git checkout "${BRANCH}"
+            git reset --hard "origin/${BRANCH}"
+
+            deploy_backend() {
+              echo "── [backend] writing .env ──"
+              cat > backend/.env << EOF
+            DB_URL=${BACKEND_DB_URL}
+            DB_USERNAME=${BACKEND_DB_USERNAME}
+            DB_PASSWORD=${BACKEND_DB_PASSWORD}
+            JWT_SECRET=${BACKEND_JWT_SECRET}
+            SMTP_HOST=${BACKEND_SMTP_HOST}
+            SMTP_PORT=${BACKEND_SMTP_PORT}
+            SMTP_USERNAME=${BACKEND_SMTP_USERNAME}
+            SMTP_PASSWORD=${BACKEND_SMTP_PASSWORD}
+            NOTIFICATION_FROM_EMAIL=${BACKEND_NOTIFICATION_FROM_EMAIL}
+            SERVER_PORT=${BACKEND_SERVER_PORT}
+            CONFIG_DIR=${BACKEND_CONFIG_DIR}
+            EOF
+              echo "── [backend] rebuilding ──"
+              docker compose -f backend/docker-compose.yml up -d --build --force-recreate app
+            }
+
+            deploy_flutter() {
+              echo "── [flutter] writing .env ──"
+              cat > flutter/.env << EOF
+            FLUTTER_TARGET_FILE=${FLUTTER_TARGET_FILE}
+            FLUTTER_DEFINE_FILE=${FLUTTER_DEFINE_FILE}
+            FLUTTER_WEB_PORT=${FLUTTER_WEB_PORT}
+            EOF
+              echo "── [flutter] rebuilding ──"
+              docker compose -f flutter/docker-compose.yml up -d --build --force-recreate flutter-web
+            }
+
+            deploy_frontend() {
+              echo "── [frontend] writing .env ──"
+              cat > frontend/.env << EOF
+            VITE_API_BASE_URL=${VITE_API_BASE_URL}
+            EOF
+              echo "── [frontend] rebuilding ──"
+              docker compose -f frontend/docker-compose.yml up -d --build --force-recreate frontend
+            }
+
+            # 根據選擇的 services 執行對應的部署
+            if [ "${SERVICES}" = "all" ]; then
+              deploy_backend
+              deploy_flutter
+              deploy_frontend
+            else
+              IFS=',' read -ra SELECTED <<< "${SERVICES}"
+              for svc in "${SELECTED[@]}"; do
+                svc=$(echo "$svc" | tr -d ' ')
+                case "$svc" in
+                  backend)  deploy_backend  ;;
+                  flutter)  deploy_flutter  ;;
+                  frontend) deploy_frontend ;;
+                  *) echo "Warning: unknown service '$svc', skipping" ;;
+                esac
+              done
+            fi
+
+            echo "── 清理舊 image ──"
+            docker image prune -f
+
+            echo "=============================="
+            echo " Rebuild completed!"
+            echo "=============================="
+        env:
+          SERVICES: ${{ inputs.services }}
+          BRANCH: ${{ inputs.branch }}
+          BACKEND_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          BACKEND_DB_USERNAME: ${{ secrets.STAGING_DB_USERNAME }}
+          BACKEND_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+          BACKEND_JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET }}
+          BACKEND_SMTP_HOST: ${{ secrets.STAGING_SMTP_HOST }}
+          BACKEND_SMTP_PORT: ${{ secrets.STAGING_SMTP_PORT }}
+          BACKEND_SMTP_USERNAME: ${{ secrets.STAGING_SMTP_USERNAME }}
+          BACKEND_SMTP_PASSWORD: ${{ secrets.STAGING_SMTP_PASSWORD }}
+          BACKEND_NOTIFICATION_FROM_EMAIL: ${{ secrets.STAGING_NOTIFICATION_FROM_EMAIL }}
+          BACKEND_SERVER_PORT: ${{ secrets.STAGING_SERVER_PORT }}
+          BACKEND_CONFIG_DIR: ${{ secrets.STAGING_CONFIG_DIR }}
+          FLUTTER_TARGET_FILE: ${{ secrets.STAGING_FLUTTER_TARGET_FILE }}
+          FLUTTER_DEFINE_FILE: ${{ secrets.STAGING_FLUTTER_DEFINE_FILE }}
+          FLUTTER_WEB_PORT: ${{ secrets.STAGING_FLUTTER_WEB_PORT }}
+          VITE_API_BASE_URL: ${{ secrets.STAGING_VITE_API_BASE_URL }}
