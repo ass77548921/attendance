@@ -1,0 +1,208 @@
+name: Release Pipeline
+
+on:
+  push:
+    branches: [release]
+
+jobs:
+  # ══════════════════════════════════════════════════════════
+  # Stage 0：偵測異動範圍
+  # ══════════════════════════════════════════════════════════
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      backend: ${{ steps.filter.outputs.backend }}
+      flutter: ${{ steps.filter.outputs.flutter }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            backend:
+              - 'backend/**'
+            flutter:
+              - 'flutter/**'
+            frontend:
+              - 'frontend/**'
+
+  # ══════════════════════════════════════════════════════════
+  # Stage 1：CI（自動執行，無需審核）
+  # ══════════════════════════════════════════════════════════
+  ci-backend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.backend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '21'
+          distribution: 'temurin'
+          cache: 'gradle'
+      - name: Run backend tests
+        run: ./gradlew test
+        working-directory: backend
+
+  ci-flutter:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.flutter == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          cache: true
+      - name: Install dependencies
+        run: flutter pub get
+        working-directory: flutter
+      - name: Run flutter tests
+        run: flutter test
+        working-directory: flutter
+
+  ci-frontend:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.frontend == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install dependencies
+        run: npm ci
+        working-directory: frontend
+      - name: Build check
+        run: npm run build
+        working-directory: frontend
+
+  # ══════════════════════════════════════════════════════════
+  # Stage 2：CD Deploy（需人工審核才放行）
+  # GitHub Settings → Environments → "pre-production" → Required reviewers
+  # ══════════════════════════════════════════════════════════
+  deploy-backend-preprod:
+    needs: [detect-changes, ci-backend]
+    # ci-backend 若因 detect-changes 被 skip，needs 的 result 會是 'skipped'
+    # 用 always() + 條件確保只有 backend 有異動且 CI 通過才執行
+    if: |
+      always() &&
+      needs.detect-changes.outputs.backend == 'true' &&
+      (needs.ci-backend.result == 'success')
+    runs-on: ubuntu-latest
+    environment: pre-production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy backend to pre-production
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PREPROD_HOST }}
+          username: ${{ secrets.PREPROD_USER }}
+          key: ${{ secrets.PREPROD_SSH_KEY }}
+          script: |
+            set -e
+            cd /srv/attendance
+            git fetch origin
+            git checkout release
+            git reset --hard origin/release
+            docker compose -f backend/docker-compose.yml up -d --build app
+            docker image prune -f
+
+  deploy-flutter-preprod:
+    needs: [detect-changes, ci-flutter]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.flutter == 'true' &&
+      (needs.ci-flutter.result == 'success')
+    runs-on: ubuntu-latest
+    environment: pre-production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy Flutter Web to pre-production
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PREPROD_HOST }}
+          username: ${{ secrets.PREPROD_USER }}
+          key: ${{ secrets.PREPROD_SSH_KEY }}
+          script: |
+            set -e
+            cd /srv/attendance
+            git fetch origin
+            git checkout release
+            git reset --hard origin/release
+            docker compose -f flutter/docker-compose.yml up -d --build flutter-web
+            docker image prune -f
+
+  deploy-frontend-preprod:
+    needs: [detect-changes, ci-frontend]
+    if: |
+      always() &&
+      needs.detect-changes.outputs.frontend == 'true' &&
+      (needs.ci-frontend.result == 'success')
+    runs-on: ubuntu-latest
+    environment: pre-production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy frontend to pre-production
+        uses: appleboy/ssh-action@v1
+        with:
+          host: ${{ secrets.PREPROD_HOST }}
+          username: ${{ secrets.PREPROD_USER }}
+          key: ${{ secrets.PREPROD_SSH_KEY }}
+          script: |
+            set -e
+            cd /srv/attendance
+            git fetch origin
+            git checkout release
+            git reset --hard origin/release
+            docker compose -f frontend/docker-compose.yml up -d --build frontend
+            docker image prune -f
+
+  # ══════════════════════════════════════════════════════════
+  # Stage 3：Promote → main + tag（人工驗收後才放行）
+  # GitHub Settings → Environments → "production-gate" → Required reviewers
+  # ══════════════════════════════════════════════════════════
+  promote-to-main:
+    needs: [deploy-backend-preprod, deploy-flutter-preprod, deploy-frontend-preprod]
+    # 只要有任一有異動的子專案 deploy 成功即可進入此 stage
+    # 若三個 deploy 都是 skipped（沒有任何異動），則不執行
+    if: |
+      always() &&
+      (
+        needs.deploy-backend-preprod.result == 'success' ||
+        needs.deploy-flutter-preprod.result == 'success' ||
+        needs.deploy-frontend-preprod.result == 'success'
+      )
+    runs-on: ubuntu-latest
+    environment: production-gate
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          # 使用有 repo write 權限的 PAT，否則預設 GITHUB_TOKEN 無法推送受保護分支
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Configure git
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+      - name: Merge release → main
+        run: |
+          git checkout main
+          git merge --no-ff origin/release -m "chore: merge release into main [skip ci]"
+          git push origin main
+
+      - name: Create version tag
+        run: |
+          DATE=$(date +%Y.%m.%d)
+          SHORT_SHA=$(git rev-parse --short HEAD)
+          VERSION="${DATE}-${SHORT_SHA}"
+          git tag "v${VERSION}" -m "Release v${VERSION}"
+          git push origin "v${VERSION}"
+          echo "Tagged: v${VERSION}"
