@@ -102,14 +102,41 @@ jobs:
           host: ${{ secrets.PREPROD_HOST }}
           username: ${{ secrets.PREPROD_USER }}
           key: ${{ secrets.PREPROD_SSH_KEY }}
+          envs: BACKEND_DB_URL,BACKEND_DB_USERNAME,BACKEND_DB_PASSWORD,BACKEND_JWT_SECRET,BACKEND_SMTP_HOST,BACKEND_SMTP_PORT,BACKEND_SMTP_USERNAME,BACKEND_SMTP_PASSWORD,BACKEND_NOTIFICATION_FROM_EMAIL,BACKEND_SERVER_PORT,BACKEND_CONFIG_DIR
           script: |
             set -e
             cd /srv/attendance
             git fetch origin
             git checkout release
             git reset --hard origin/release
+            # 動態寫入 backend .env
+            cat > backend/.env << EOF
+            DB_URL=${BACKEND_DB_URL}
+            DB_USERNAME=${BACKEND_DB_USERNAME}
+            DB_PASSWORD=${BACKEND_DB_PASSWORD}
+            JWT_SECRET=${BACKEND_JWT_SECRET}
+            SMTP_HOST=${BACKEND_SMTP_HOST}
+            SMTP_PORT=${BACKEND_SMTP_PORT}
+            SMTP_USERNAME=${BACKEND_SMTP_USERNAME}
+            SMTP_PASSWORD=${BACKEND_SMTP_PASSWORD}
+            NOTIFICATION_FROM_EMAIL=${BACKEND_NOTIFICATION_FROM_EMAIL}
+            SERVER_PORT=${BACKEND_SERVER_PORT}
+            CONFIG_DIR=${BACKEND_CONFIG_DIR}
+            EOF
             docker compose -f backend/docker-compose.yml up -d --build app
             docker image prune -f
+        env:
+          BACKEND_DB_URL: ${{ secrets.PREPROD_DB_URL }}
+          BACKEND_DB_USERNAME: ${{ secrets.PREPROD_DB_USERNAME }}
+          BACKEND_DB_PASSWORD: ${{ secrets.PREPROD_DB_PASSWORD }}
+          BACKEND_JWT_SECRET: ${{ secrets.PREPROD_JWT_SECRET }}
+          BACKEND_SMTP_HOST: ${{ secrets.PREPROD_SMTP_HOST }}
+          BACKEND_SMTP_PORT: ${{ secrets.PREPROD_SMTP_PORT }}
+          BACKEND_SMTP_USERNAME: ${{ secrets.PREPROD_SMTP_USERNAME }}
+          BACKEND_SMTP_PASSWORD: ${{ secrets.PREPROD_SMTP_PASSWORD }}
+          BACKEND_NOTIFICATION_FROM_EMAIL: ${{ secrets.PREPROD_NOTIFICATION_FROM_EMAIL }}
+          BACKEND_SERVER_PORT: ${{ secrets.PREPROD_SERVER_PORT }}
+          BACKEND_CONFIG_DIR: ${{ secrets.PREPROD_CONFIG_DIR }}
 
   deploy-flutter-preprod:
     needs: [detect-changes, ci-flutter]
@@ -127,14 +154,25 @@ jobs:
           host: ${{ secrets.PREPROD_HOST }}
           username: ${{ secrets.PREPROD_USER }}
           key: ${{ secrets.PREPROD_SSH_KEY }}
+          envs: FLUTTER_TARGET_FILE,FLUTTER_DEFINE_FILE,FLUTTER_WEB_PORT
           script: |
             set -e
             cd /srv/attendance
             git fetch origin
             git checkout release
             git reset --hard origin/release
+            # 動態寫入 flutter .env
+            cat > flutter/.env << EOF
+            FLUTTER_TARGET_FILE=${FLUTTER_TARGET_FILE}
+            FLUTTER_DEFINE_FILE=${FLUTTER_DEFINE_FILE}
+            FLUTTER_WEB_PORT=${FLUTTER_WEB_PORT}
+            EOF
             docker compose -f flutter/docker-compose.yml up -d --build flutter-web
             docker image prune -f
+        env:
+          FLUTTER_TARGET_FILE: ${{ secrets.PREPROD_FLUTTER_TARGET_FILE }}
+          FLUTTER_DEFINE_FILE: ${{ secrets.PREPROD_FLUTTER_DEFINE_FILE }}
+          FLUTTER_WEB_PORT: ${{ secrets.PREPROD_FLUTTER_WEB_PORT }}
 
   deploy-frontend-preprod:
     needs: [detect-changes, ci-frontend]
@@ -152,14 +190,21 @@ jobs:
           host: ${{ secrets.PREPROD_HOST }}
           username: ${{ secrets.PREPROD_USER }}
           key: ${{ secrets.PREPROD_SSH_KEY }}
+          envs: VITE_API_BASE_URL
           script: |
             set -e
             cd /srv/attendance
             git fetch origin
             git checkout release
             git reset --hard origin/release
+            # 動態寫入 frontend .env
+            cat > frontend/.env << EOF
+            VITE_API_BASE_URL=${VITE_API_BASE_URL}
+            EOF
             docker compose -f frontend/docker-compose.yml up -d --build frontend
             docker image prune -f
+        env:
+          VITE_API_BASE_URL: ${{ secrets.PREPROD_VITE_API_BASE_URL }}
 
   # ══════════════════════════════════════════════════════════
   # Stage 3：Promote → main + tag（人工驗收後才放行）

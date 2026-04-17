@@ -8,6 +8,7 @@ import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.mail.javamail.JavaMailSenderImpl;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -20,6 +21,7 @@ import java.security.MessageDigest;
 import java.security.SecureRandom;
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Properties;
 
 @Service
 @RequiredArgsConstructor
@@ -83,17 +85,49 @@ public class MailSettingsService {
 
     public void sendTestMail(String to) {
         MailProfile profile = getEffectiveProfile();
+        JavaMailSender sender = resolveMailSender();
         try {
-            MimeMessage mime = javaMailSender.createMimeMessage();
+            MimeMessage mime = sender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mime, false, "UTF-8");
             helper.setFrom(profile.fromEmail());
             helper.setTo(to);
             helper.setSubject(profile.subjectPrefix() + " Test Notification");
             helper.setText("This is a test notification from the Attendance Management System.", false);
-            javaMailSender.send(mime);
+            sender.send(mime);
         } catch (Exception e) {
             throw new RuntimeException("Test email failed: " + e.getMessage(), e);
         }
+    }
+
+    /**
+     * 解析實際使用的 JavaMailSender：
+     * 1. 若 DB 有啟用的設定且 smtpHost 不為空 → 以 DB 設定動態建立 sender（支援後台熱更新）
+     * 2. 否則 fallback 使用環境變數設定的 bean
+     */
+    @Transactional(readOnly = true)
+    public JavaMailSender resolveMailSender() {
+        return mailSettingsRepository.findTopByOrderByIdAsc()
+                .filter(MailSettings::isEnabled)
+                .filter(s -> s.getSmtpHost() != null && !s.getSmtpHost().isBlank())
+                .map(this::toMailSenderImpl)
+                .map(s -> (JavaMailSender) s)
+                .orElse(javaMailSender);
+    }
+
+    private JavaMailSenderImpl toMailSenderImpl(MailSettings settings) {
+        JavaMailSenderImpl sender = new JavaMailSenderImpl();
+        sender.setHost(settings.getSmtpHost());
+        sender.setPort(settings.getSmtpPort());
+        sender.setUsername(settings.getSmtpUsername());
+        sender.setPassword(decrypt(settings.getSmtpPasswordEncrypted()));
+
+        Properties props = sender.getJavaMailProperties();
+        props.put("mail.transport.protocol", "smtp");
+        props.put("mail.smtp.auth", "true");
+        props.put("mail.smtp.starttls.enable", "true");
+        props.put("mail.smtp.timeout", "5000");
+        props.put("mail.smtp.connectiontimeout", "5000");
+        return sender;
     }
 
     @Transactional(readOnly = true)

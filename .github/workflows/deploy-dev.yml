@@ -47,14 +47,42 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
+          # 把 secrets 作為環境變數傳進 SSH session
+          envs: BACKEND_DB_URL,BACKEND_DB_USERNAME,BACKEND_DB_PASSWORD,BACKEND_JWT_SECRET,BACKEND_SMTP_HOST,BACKEND_SMTP_PORT,BACKEND_SMTP_USERNAME,BACKEND_SMTP_PASSWORD,BACKEND_NOTIFICATION_FROM_EMAIL,BACKEND_SERVER_PORT,BACKEND_CONFIG_DIR
           script: |
             set -e
             cd /srv/attendance
             git fetch origin
             git checkout dev
             git reset --hard origin/dev
+            # 動態寫入 backend .env
+            cat > backend/.env << EOF
+            DB_URL=${BACKEND_DB_URL}
+            DB_USERNAME=${BACKEND_DB_USERNAME}
+            DB_PASSWORD=${BACKEND_DB_PASSWORD}
+            JWT_SECRET=${BACKEND_JWT_SECRET}
+            SMTP_HOST=${BACKEND_SMTP_HOST}
+            SMTP_PORT=${BACKEND_SMTP_PORT}
+            SMTP_USERNAME=${BACKEND_SMTP_USERNAME}
+            SMTP_PASSWORD=${BACKEND_SMTP_PASSWORD}
+            NOTIFICATION_FROM_EMAIL=${BACKEND_NOTIFICATION_FROM_EMAIL}
+            SERVER_PORT=${BACKEND_SERVER_PORT}
+            CONFIG_DIR=${BACKEND_CONFIG_DIR}
+            EOF
             docker compose -f backend/docker-compose.yml up -d --build app
             docker image prune -f
+        env:
+          BACKEND_DB_URL: ${{ secrets.STAGING_DB_URL }}
+          BACKEND_DB_USERNAME: ${{ secrets.STAGING_DB_USERNAME }}
+          BACKEND_DB_PASSWORD: ${{ secrets.STAGING_DB_PASSWORD }}
+          BACKEND_JWT_SECRET: ${{ secrets.STAGING_JWT_SECRET }}
+          BACKEND_SMTP_HOST: ${{ secrets.STAGING_SMTP_HOST }}
+          BACKEND_SMTP_PORT: ${{ secrets.STAGING_SMTP_PORT }}
+          BACKEND_SMTP_USERNAME: ${{ secrets.STAGING_SMTP_USERNAME }}
+          BACKEND_SMTP_PASSWORD: ${{ secrets.STAGING_SMTP_PASSWORD }}
+          BACKEND_NOTIFICATION_FROM_EMAIL: ${{ secrets.STAGING_NOTIFICATION_FROM_EMAIL }}
+          BACKEND_SERVER_PORT: ${{ secrets.STAGING_SERVER_PORT }}
+          BACKEND_CONFIG_DIR: ${{ secrets.STAGING_CONFIG_DIR }}
 
   # ── Flutter Web：deploy staging ───────────────────────────
   deploy-flutter-staging:
@@ -70,14 +98,25 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: FLUTTER_TARGET_FILE,FLUTTER_DEFINE_FILE,FLUTTER_WEB_PORT
           script: |
             set -e
             cd /srv/attendance
             git fetch origin
             git checkout dev
             git reset --hard origin/dev
+            # 動態寫入 flutter .env
+            cat > flutter/.env << EOF
+            FLUTTER_TARGET_FILE=${FLUTTER_TARGET_FILE}
+            FLUTTER_DEFINE_FILE=${FLUTTER_DEFINE_FILE}
+            FLUTTER_WEB_PORT=${FLUTTER_WEB_PORT}
+            EOF
             docker compose -f flutter/docker-compose.yml up -d --build flutter-web
             docker image prune -f
+        env:
+          FLUTTER_TARGET_FILE: ${{ secrets.STAGING_FLUTTER_TARGET_FILE }}
+          FLUTTER_DEFINE_FILE: ${{ secrets.STAGING_FLUTTER_DEFINE_FILE }}
+          FLUTTER_WEB_PORT: ${{ secrets.STAGING_FLUTTER_WEB_PORT }}
 
   # ── Frontend：deploy staging ──────────────────────────────
   deploy-frontend-staging:
@@ -93,11 +132,18 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
+          envs: VITE_API_BASE_URL
           script: |
             set -e
             cd /srv/attendance
             git fetch origin
             git checkout dev
             git reset --hard origin/dev
+            # 動態寫入 frontend .env
+            cat > frontend/.env << EOF
+            VITE_API_BASE_URL=${VITE_API_BASE_URL}
+            EOF
             docker compose -f frontend/docker-compose.yml up -d --build frontend
             docker image prune -f
+        env:
+          VITE_API_BASE_URL: ${{ secrets.STAGING_VITE_API_BASE_URL }}

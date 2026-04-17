@@ -13,9 +13,7 @@ import jakarta.persistence.EntityNotFoundException;
 import jakarta.mail.internet.MimeMessage;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.event.EventListener;
-import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.mail.javamail.MimeMessageHelper;
 import org.springframework.retry.annotation.Backoff;
 import org.springframework.retry.annotation.Retryable;
@@ -32,7 +30,6 @@ import java.util.List;
 @RequiredArgsConstructor
 public class NotificationService {
 
-    private final JavaMailSender mailSender;
     private final TemplateEngine templateEngine;
     private final NotificationRecipientRepository recipientRepository;
     private final NotificationLogRepository notificationLogRepository;
@@ -67,6 +64,7 @@ public class NotificationService {
 
         try {
             MailProfile profile = mailSettingsService.getEffectiveProfile();
+            var mailSender = mailSettingsService.resolveMailSender();
             Context ctx = new Context();
             ctx.setVariable("employeeName", user.getFullName());
             ctx.setVariable("workDate", event.getWorkDate().toString());
@@ -101,6 +99,7 @@ public class NotificationService {
         logEntry.setWorkDate(java.time.LocalDate.now());
         try {
             MailProfile profile = mailSettingsService.getEffectiveProfile();
+            var mailSender = mailSettingsService.resolveMailSender();
             MimeMessage mime = mailSender.createMimeMessage();
             MimeMessageHelper helper = new MimeMessageHelper(mime, false, "UTF-8");
             helper.setFrom(profile.fromEmail(), profile.fromName());
