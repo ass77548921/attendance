@@ -48,10 +48,28 @@ jobs:
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
           # 把 secrets 作為環境變數傳進 SSH session
-          envs: BACKEND_DB_URL,BACKEND_DB_USERNAME,BACKEND_DB_PASSWORD,BACKEND_JWT_SECRET,BACKEND_SMTP_HOST,BACKEND_SMTP_PORT,BACKEND_SMTP_USERNAME,BACKEND_SMTP_PASSWORD,BACKEND_NOTIFICATION_FROM_EMAIL,BACKEND_SERVER_PORT,BACKEND_CONFIG_DIR
+          envs: GITHUB_SERVER_URL,GITHUB_REPOSITORY,BACKEND_DB_URL,BACKEND_DB_USERNAME,BACKEND_DB_PASSWORD,BACKEND_JWT_SECRET,BACKEND_SMTP_HOST,BACKEND_SMTP_PORT,BACKEND_SMTP_USERNAME,BACKEND_SMTP_PASSWORD,BACKEND_NOTIFICATION_FROM_EMAIL,BACKEND_SERVER_PORT,BACKEND_CONFIG_DIR
           script: |
             set -e
-            cd /src/attendance
+            REPO_DIR="/srv/attendance"
+            GIT_HOST=$(echo "${GITHUB_SERVER_URL:-https://github.com}" | sed -E 's#https?://##')
+            REPO_SSH_URL="git@${GIT_HOST}:${GITHUB_REPOSITORY}.git"
+            PARENT_DIR=$(dirname "${REPO_DIR}")
+            if [ ! -d "${PARENT_DIR}" ] || [ ! -w "${PARENT_DIR}" ]; then
+              REPO_DIR="${HOME}/attendance"
+              echo "[warn] ${PARENT_DIR} is not writable, fallback to ${REPO_DIR}"
+            fi
+            if [ ! -d "${REPO_DIR}/.git" ]; then
+              echo "[warn] ${REPO_DIR} is not a git repository, recreating from ${REPO_SSH_URL}"
+              mkdir -p "$(dirname "${REPO_DIR}")"
+              if [ -d "${REPO_DIR}" ] && [ -n "$(ls -A "${REPO_DIR}")" ]; then
+                BACKUP_DIR="${REPO_DIR}.bak.$(date +%Y%m%d%H%M%S)"
+                mv "${REPO_DIR}" "${BACKUP_DIR}"
+                echo "[info] Existing directory moved to ${BACKUP_DIR}"
+              fi
+              git clone --single-branch --branch dev "${REPO_SSH_URL}" "${REPO_DIR}"
+            fi
+            cd "${REPO_DIR}"
             git fetch origin
             git checkout dev
             git reset --hard origin/dev
@@ -98,10 +116,28 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
-          envs: FLUTTER_TARGET_FILE,FLUTTER_DEFINE_FILE,FLUTTER_WEB_PORT
+          envs: GITHUB_SERVER_URL,GITHUB_REPOSITORY,FLUTTER_TARGET_FILE,FLUTTER_DEFINE_FILE,FLUTTER_WEB_PORT
           script: |
             set -e
-            cd /src/attendance
+            REPO_DIR="/srv/attendance"
+            GIT_HOST=$(echo "${GITHUB_SERVER_URL:-https://github.com}" | sed -E 's#https?://##')
+            REPO_SSH_URL="git@${GIT_HOST}:${GITHUB_REPOSITORY}.git"
+            PARENT_DIR=$(dirname "${REPO_DIR}")
+            if [ ! -d "${PARENT_DIR}" ] || [ ! -w "${PARENT_DIR}" ]; then
+              REPO_DIR="${HOME}/attendance"
+              echo "[warn] ${PARENT_DIR} is not writable, fallback to ${REPO_DIR}"
+            fi
+            if [ ! -d "${REPO_DIR}/.git" ]; then
+              echo "[warn] ${REPO_DIR} is not a git repository, recreating from ${REPO_SSH_URL}"
+              mkdir -p "$(dirname "${REPO_DIR}")"
+              if [ -d "${REPO_DIR}" ] && [ -n "$(ls -A "${REPO_DIR}")" ]; then
+                BACKUP_DIR="${REPO_DIR}.bak.$(date +%Y%m%d%H%M%S)"
+                mv "${REPO_DIR}" "${BACKUP_DIR}"
+                echo "[info] Existing directory moved to ${BACKUP_DIR}"
+              fi
+              git clone --single-branch --branch dev "${REPO_SSH_URL}" "${REPO_DIR}"
+            fi
+            cd "${REPO_DIR}"
             git fetch origin
             git checkout dev
             git reset --hard origin/dev
@@ -132,10 +168,28 @@ jobs:
           host: ${{ secrets.STAGING_HOST }}
           username: ${{ secrets.STAGING_USER }}
           key: ${{ secrets.STAGING_SSH_KEY }}
-          envs: VITE_API_BASE_URL
+          envs: GITHUB_SERVER_URL,GITHUB_REPOSITORY,VITE_API_BASE_URL
           script: |
             set -e
-            cd /src/attendance
+            REPO_DIR="/srv/attendance"
+            GIT_HOST=$(echo "${GITHUB_SERVER_URL:-https://github.com}" | sed -E 's#https?://##')
+            REPO_SSH_URL="git@${GIT_HOST}:${GITHUB_REPOSITORY}.git"
+            PARENT_DIR=$(dirname "${REPO_DIR}")
+            if [ ! -d "${PARENT_DIR}" ] || [ ! -w "${PARENT_DIR}" ]; then
+              REPO_DIR="${HOME}/attendance"
+              echo "[warn] ${PARENT_DIR} is not writable, fallback to ${REPO_DIR}"
+            fi
+            if [ ! -d "${REPO_DIR}/.git" ]; then
+              echo "[warn] ${REPO_DIR} is not a git repository, recreating from ${REPO_SSH_URL}"
+              mkdir -p "$(dirname "${REPO_DIR}")"
+              if [ -d "${REPO_DIR}" ] && [ -n "$(ls -A "${REPO_DIR}")" ]; then
+                BACKUP_DIR="${REPO_DIR}.bak.$(date +%Y%m%d%H%M%S)"
+                mv "${REPO_DIR}" "${BACKUP_DIR}"
+                echo "[info] Existing directory moved to ${BACKUP_DIR}"
+              fi
+              git clone --single-branch --branch dev "${REPO_SSH_URL}" "${REPO_DIR}"
+            fi
+            cd "${REPO_DIR}"
             git fetch origin
             git checkout dev
             git reset --hard origin/dev

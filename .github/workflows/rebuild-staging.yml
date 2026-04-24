@@ -50,12 +50,20 @@ jobs:
             echo " Services: ${SERVICES}"
             echo "=============================="
 
-            REPO_DIR="/src/attendance"
+            REPO_DIR="/srv/attendance"
             GIT_HOST=$(echo "${GITHUB_SERVER_URL:-https://github.com}" | sed -E 's#https?://##')
             REPO_SSH_URL="git@${GIT_HOST}:${GITHUB_REPOSITORY}.git"
 
+            PARENT_DIR=$(dirname "${REPO_DIR}")
+            if [ ! -d "${PARENT_DIR}" ] || [ ! -w "${PARENT_DIR}" ]; then
+              FALLBACK_REPO_DIR="${HOME}/attendance"
+              echo "[warn] ${PARENT_DIR} is not writable, fallback to ${FALLBACK_REPO_DIR}"
+              REPO_DIR="${FALLBACK_REPO_DIR}"
+            fi
+
             if [ ! -d "${REPO_DIR}/.git" ]; then
               echo "[warn] ${REPO_DIR} is not a git repository, recreating from ${REPO_SSH_URL}"
+              mkdir -p "$(dirname "${REPO_DIR}")"
               if [ -d "${REPO_DIR}" ] && [ -n "$(ls -A "${REPO_DIR}")" ]; then
                 BACKUP_DIR="${REPO_DIR}.bak.$(date +%Y%m%d%H%M%S)"
                 mv "${REPO_DIR}" "${BACKUP_DIR}"
