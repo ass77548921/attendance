@@ -35,6 +35,7 @@ jobs:
           key: ${{ secrets.STAGING_SSH_KEY }}
           envs: >-
             SERVICES,BRANCH,
+            GITHUB_SERVER_URL,GITHUB_REPOSITORY,
             BACKEND_DB_URL,BACKEND_DB_USERNAME,BACKEND_DB_PASSWORD,
             BACKEND_JWT_SECRET,
             BACKEND_SMTP_HOST,BACKEND_SMTP_PORT,BACKEND_SMTP_USERNAME,BACKEND_SMTP_PASSWORD,
@@ -49,7 +50,21 @@ jobs:
             echo " Services: ${SERVICES}"
             echo "=============================="
 
-            cd /srv/attendance
+            REPO_DIR="/srv/attendance"
+            GIT_HOST=$(echo "${GITHUB_SERVER_URL:-https://github.com}" | sed -E 's#https?://##')
+            REPO_SSH_URL="git@${GIT_HOST}:${GITHUB_REPOSITORY}.git"
+
+            if [ ! -d "${REPO_DIR}/.git" ]; then
+              echo "[warn] ${REPO_DIR} is not a git repository, recreating from ${REPO_SSH_URL}"
+              if [ -d "${REPO_DIR}" ] && [ -n "$(ls -A "${REPO_DIR}")" ]; then
+                BACKUP_DIR="${REPO_DIR}.bak.$(date +%Y%m%d%H%M%S)"
+                mv "${REPO_DIR}" "${BACKUP_DIR}"
+                echo "[info] Existing directory moved to ${BACKUP_DIR}"
+              fi
+              git clone --single-branch --branch "${BRANCH}" "${REPO_SSH_URL}" "${REPO_DIR}"
+            fi
+
+            cd "${REPO_DIR}"
             git fetch origin
             git checkout "${BRANCH}"
             git reset --hard "origin/${BRANCH}"
