@@ -51,7 +51,7 @@ jobs:
           envs: BACKEND_DB_URL,BACKEND_DB_USERNAME,BACKEND_DB_PASSWORD,BACKEND_JWT_SECRET,BACKEND_SMTP_HOST,BACKEND_SMTP_PORT,BACKEND_SMTP_USERNAME,BACKEND_SMTP_PASSWORD,BACKEND_NOTIFICATION_FROM_EMAIL,BACKEND_SERVER_PORT,BACKEND_CONFIG_DIR
           script: |
             set -e
-            cd /srv/attendance
+            cd /src/attendance
             git fetch origin
             git checkout dev
             git reset --hard origin/dev
@@ -101,7 +101,7 @@ jobs:
           envs: FLUTTER_TARGET_FILE,FLUTTER_DEFINE_FILE,FLUTTER_WEB_PORT
           script: |
             set -e
-            cd /srv/attendance
+            cd /src/attendance
             git fetch origin
             git checkout dev
             git reset --hard origin/dev
@@ -135,7 +135,7 @@ jobs:
           envs: VITE_API_BASE_URL
           script: |
             set -e
-            cd /srv/attendance
+            cd /src/attendance
             git fetch origin
             git checkout dev
             git reset --hard origin/dev

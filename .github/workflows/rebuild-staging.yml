@@ -50,7 +50,7 @@ jobs:
             echo " Services: ${SERVICES}"
             echo "=============================="
 
-            REPO_DIR="/srv/attendance"
+            REPO_DIR="/src/attendance"
             GIT_HOST=$(echo "${GITHUB_SERVER_URL:-https://github.com}" | sed -E 's#https?://##')
             REPO_SSH_URL="git@${GIT_HOST}:${GITHUB_REPOSITORY}.git"
 
